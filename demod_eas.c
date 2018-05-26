@@ -44,7 +44,7 @@
 * a.) The speed is 520.83 bits per second
 * b.)  Logic zero is 1562.5 Hz.
 * c.)  Logic one is 2083.3 Hz
-* 
+*
 * preamble is 0xAB sent on wire as LSB first
 *     11010101
 * start of message header begins with ZCZC
@@ -115,17 +115,17 @@ static char eas_allowed(char data)
 {
    // determine if a character is allowed in an EAS frame
    // returns true if it is
-   
+
    // high-byte ASCII characters are forbidden
    if (data & 0x80)
       return 0;
    if (data == 13 || data == 10)
       // LF and CR are allowed
       return 1;
-   if (data >= 32 || data <= 126)
+   if (data >= 32 && data <= 126)
       // These text and punctuation characters are allowed
       return 1;
-   
+
    // all other characters forbidden
    return 0;
 }
@@ -134,23 +134,23 @@ static void eas_frame(struct demod_state *s, char data)
 {
     int i,j = 0;
     char * ptr = 0;
-    
+
     if (data)
     {
        // if we're idle, now we're looking for a header
        if (s->l2.eas.state == EAS_L2_IDLE)
           s->l2.eas.state = EAS_L2_HEADER_SEARCH;
-       
-       if (s->l2.eas.state == EAS_L2_HEADER_SEARCH && 
+
+       if (s->l2.eas.state == EAS_L2_HEADER_SEARCH &&
             s->l2.eas.headlen < MAX_HEADER_LEN)
        {
           // put it in the header buffer if we have room
-       
+
           s->l2.eas.head_buf[s->l2.eas.headlen] = data;
           s->l2.eas.headlen++;
-       
+
        }
-       
+
        if (s->l2.eas.state == EAS_L2_HEADER_SEARCH &&
                   s->l2.eas.headlen >= MAX_HEADER_LEN)
        {
@@ -180,11 +180,11 @@ static void eas_frame(struct demod_state *s, char data)
     {
        // the header has ended
        // fill the rest of the buffer will NULs
-       memset(&s->l2.eas.msg_buf[s->l2.eas.msgno][s->l2.eas.msglen], '\0', 
-              MAX_MSG_LEN - s->l2.eas.msglen); 
+       memset(&s->l2.eas.msg_buf[s->l2.eas.msgno][s->l2.eas.msglen], '\0',
+              MAX_MSG_LEN - s->l2.eas.msglen);
        //s->l2.eas.msg_buf[s->l2.eas.msgno][s->l2.eas.msglen] = '\0';
        if (s->l2.eas.state == EAS_L2_READING_MESSAGE)
-       { 
+       {
          // All EAS messages should end in a minus sign ("-")
          // trim any trailing characters
          ptr = strrchr(s->l2.eas.msg_buf[s->l2.eas.msgno], '-');
@@ -193,23 +193,23 @@ static void eas_frame(struct demod_state *s, char data)
             // found. make the next character zero
             *(ptr+1) = '\0';
          }
-          
+
          // display message if verbosity permits
          verbprintf(7, "\n");
          verbprintf(1, "%s (part): %s%s\n", s->dem_par->name, HEADER_BEGIN,
                     s->l2.eas.msg_buf[s->l2.eas.msgno]);
-         
+
          // increment message number
          s->l2.eas.msgno += 1;
          if (s->l2.eas.msgno >= MAX_STORE_MSG)
             s->l2.eas.msgno = 0;
-            
+
          // check for message agreement; 2 of 3 must agree
          for (i = 0; i < MAX_STORE_MSG; i++)
          {
-            // if this message is empty or matches the one we've just 
+            // if this message is empty or matches the one we've just
             // alerted the user to, ignore it.
-            if (s->l2.eas.msg_buf[i][0] == '\0' || 
+            if (s->l2.eas.msg_buf[i][0] == '\0' ||
                   !strncmp(s->l2.eas.last_message,
                            s->l2.eas.msg_buf[i], MAX_MSG_LEN))
                continue;
@@ -217,14 +217,14 @@ static void eas_frame(struct demod_state *s, char data)
             {
                // test if messages are identical and not a dupe of the
                // last message
-               if (!strncmp(s->l2.eas.msg_buf[i], 
+               if (!strncmp(s->l2.eas.msg_buf[i],
                            s->l2.eas.msg_buf[j],
                            MAX_MSG_LEN))
                {
                   // store message to prevent dupes
                   strncpy(s->l2.eas.last_message, s->l2.eas.msg_buf[j],
                         MAX_MSG_LEN);
-                  
+
                   // raise the alert and discontinue processing
                   verbprintf(7, "\n");
                   verbprintf(0, "%s: %s%s\n", s->dem_par->name, HEADER_BEGIN,
@@ -234,7 +234,7 @@ static void eas_frame(struct demod_state *s, char data)
                }
             }
          }
-         
+
        }
        else if (s->l2.eas.state == EAS_L2_READING_EOM)
        {
@@ -253,7 +253,7 @@ static void eas_demod(struct demod_state *s, buffer_t buffer, int length)
     float f;
     unsigned char curbit;
     float dll_gain;
-    
+
     if (s->l1.eas.subsamp) {
         int numfill = SUBSAMP - s->l1.eas.subsamp;
         if (length < numfill) {
@@ -286,14 +286,14 @@ static void eas_demod(struct demod_state *s, buffer_t buffer, int length)
         {
             s->l1.eas.dcd_integrator -= 1;
         }
-           
+
         verbprintf(9, "%c", '0'+(s->l1.afsk12.dcd_shreg & 1));
-        
-        
+
+
         /*
          * check if transition occurred on time
          */
-        
+
         if (s->l2.eas.state != EAS_L2_IDLE)
         dll_gain = DLL_GAIN_SYNC;
         else
@@ -313,7 +313,7 @@ static void eas_demod(struct demod_state *s, buffer_t buffer, int length)
             else
             {
                 // after center; check for increment
-                
+
                 if (s->l1.eas.sphase < (0x10000u - SPHASEINC/2))
                 {
                     s->l1.eas.sphase += MIN((int)((0x10000u - s->l1.eas.sphase)*
@@ -325,20 +325,20 @@ static void eas_demod(struct demod_state *s, buffer_t buffer, int length)
         }
 
         s->l1.eas.sphase += SPHASEINC;
-        
+
         if (s->l1.eas.sphase >= 0x10000u) {
-            // end of bit period. 
+            // end of bit period.
             s->l1.eas.sphase = 1;      //was &= 0xffffu;
             s->l1.eas.lasts >>= 1;
-            
-            // if at least half of the values in the integrator are 1, 
+
+            // if at least half of the values in the integrator are 1,
             // declare a 1 received
             s->l1.afsk12.lasts |= ((s->l1.eas.dcd_integrator >= 0) << 7) & 0x80u;
-            
+
             curbit = (s->l1.eas.lasts >> 7) & 0x1u;
             verbprintf(9, "  ");
             verbprintf(7, "%c", '0'+curbit);
-            
+
             // check for sync sequence
             // do not resync when we're reading a message!
             if (s->l1.eas.lasts == PREAMBLE
@@ -369,8 +369,8 @@ static void eas_demod(struct demod_state *s, buffer_t buffer, int length)
                   s->l1.eas.byte_counter = 0;
                }
             }
-            
-            
+
+
             verbprintf(9, "\n");
         }
     }
